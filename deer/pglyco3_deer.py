@@ -1,5 +1,3 @@
-# 输入目录：D:\Research\lvy\StrucGAP\test
-# 输出目录：D:\Research\lvy\StrucGAP\test\output
 from pathlib import Path
 import os
 import sys
@@ -12,7 +10,7 @@ from strucgap.datavisualization import StrucGAP_DataVisualization
 from strucgap.insighttracker import StrucGAP_InsightTracker
 
 
-#路径和参数
+# 0. 路径和参数：一般只需要改这里
 BASE_DIR = Path(r"D:\Research\lvy\StrucGAP\test")
 OUT_DIR = BASE_DIR / "output"
 
@@ -20,8 +18,10 @@ PGLYCO_STRUCTURE_FILE = BASE_DIR / "pd structure.xlsx"
 QUANT_FILE = BASE_DIR / "s6.xlsx"
 SAMPLE_GROUP_FILE = BASE_DIR / "sample_group.xlsx"
 
+
 BRANCH_FILE_CANDIDATES = list(BASE_DIR.glob("branch_structures*.xlsx"))
 BRANCH_FILE = BRANCH_FILE_CANDIDATES[0] if BRANCH_FILE_CANDIDATES else BASE_DIR / "branch_structures_18_mice uterus.0240401.xlsx"
+WURCS_FILE = BASE_DIR / "glycosmos_glycans_wurcs.csv"
 
 DATA_SHEET_NAME = "Sheet1"
 QUANT_SHEET_NAME = "Sheet1"
@@ -32,8 +32,8 @@ QUANT_COLS = [
     "PD-SN-1", "PD-SN-2", "PD-SN-3",
 ]
 
-# 官方示例中的 abundance_ratio
-# 这里有 10 个数，是官方示例参数
+# 官方示例中的 abundance_ratio。
+# 注意：这里有 10 个数，是官方示例参数
 ABUNDANCE_RATIO = [
     1.240003449, 0, 1.344387558, 0, 1.576533442,
     0, 1, 0, 1.956346409, 1.517000766,
@@ -46,7 +46,10 @@ RUN_STRUCTURE_WITH_QUANT = True
 # 差异分析阈值：官方示例使用 fc=4.2
 DIFF_FC = 4.2
 
-#工具函数
+
+# ============================================================
+# 1. 工具函数
+# ============================================================
 
 def check_files() -> None:
     """检查必要输入文件是否存在。"""
@@ -55,6 +58,7 @@ def check_files() -> None:
         "quantification file": QUANT_FILE,
         "sample group file": SAMPLE_GROUP_FILE,
         "branch list file": BRANCH_FILE,
+        "GlyTouCan WURCS file": WURCS_FILE,
     }
 
     missing = []
@@ -66,6 +70,9 @@ def check_files() -> None:
         print("\n[ERROR] 缺少必要文件：")
         for item in missing:
             print("  -", item)
+        print("\n请把缺失文件放到：", BASE_DIR)
+        print("其中 branch list 通常来自官方 tests 目录：branch_structures_18_mice uterus.0240401.xlsx")
+        print("GlyTouCan WURCS 文件通常来自官方 tests 目录：glycosmos_glycans_wurcs.csv")
         sys.exit(1)
 
 
@@ -101,7 +108,13 @@ def run_structure_only(data_manager: StrucGAP_InsightTracker) -> None:
     module1.outliers(abundance_ratio=ABUNDANCE_RATIO)
     module1.cv(threshold="no")
     module1.psm(psm_number="no", fc_recommendation=False)
-    module1.annotation(glytoucan=True, biosynthetic_pathways=True, glycobiology_filter=True)
+    module1.annotation(
+        glytoucan=True,
+        glytoucan_structure=True,
+        glytoucan_wurcs_file=str(WURCS_FILE),
+        biosynthetic_pathways=True,
+        glycobiology_filter=True,
+    )
     module1.output()
 
     print("\n========== 01_structure_only: GlycanStructure ==========")
@@ -156,7 +169,13 @@ def run_structure_with_quant(data_manager: StrucGAP_InsightTracker) -> None:
     module1.outliers(abundance_ratio=ABUNDANCE_RATIO)
     module1.cv(threshold="no")
     module1.psm(psm_number="no", fc_recommendation=True)
-    module1.annotation(glytoucan=True, biosynthetic_pathways=True, glycobiology_filter=True)
+    module1.annotation(
+        glytoucan=True,
+        glytoucan_structure=True,
+        glytoucan_wurcs_file=str(WURCS_FILE),
+        biosynthetic_pathways=True,
+        glycobiology_filter=True,
+    )
     module1.output()
 
     print("\n========== 02_structure_with_quant: GlycanStructure ==========")
@@ -232,7 +251,9 @@ def run_structure_with_quant(data_manager: StrucGAP_InsightTracker) -> None:
     print("\n[OK] structure-with-quant workflow finished.")
 
 
-#启动
+# ============================================================
+# 2. 主流程
+# ============================================================
 
 def main() -> None:
     print("[Base directory]", BASE_DIR)
@@ -249,10 +270,11 @@ def main() -> None:
     if RUN_STRUCTURE_WITH_QUANT:
         run_structure_with_quant(data_manager)
 
+    # 保存 data_manager 状态
     make_and_enter_output_dir("99_data_manager")
     data_manager.output_pickle()
 
-    # 初始化可视化模块
+    # 初始化可视化模块；具体绘图函数后续再按需要调用
     StrucGAP_DataVisualization(data_manager=data_manager)
 
     print("\nAll workflows finished.")
