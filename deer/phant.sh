@@ -34,3 +34,12 @@ if ($userPath -notlike "*$PHANTOM_BIN*") {
 }
 
 phantomjs --version
+
+$ASSET_DIR = "D:\Research\tools\pyecharts-assets"
+New-Item -ItemType Directory -Force $ASSET_DIR | Out-Null
+
+Invoke-WebRequest `
+  -Uri "https://assets.pyecharts.org/assets/echarts.min.js" `
+  -OutFile "$ASSET_DIR\echarts.min.js"
+
+Get-Item "$ASSET_DIR\echarts.min.js"
